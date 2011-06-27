@@ -93,6 +93,7 @@ class Extractor extends \lithium\core\StaticObject {
 
 		$path = preg_replace('/^' . preg_quote($config['prefix'], '/') . '/', '', $identifier);
 		$path = rtrim('/' . str_replace('\\', '/', $path), '/');
+
 		if (isset($options['contents'])) {
 			$object['children'] = static::_contents($object, $options['contents']);
 		} else {
@@ -120,6 +121,7 @@ class Extractor extends \lithium\core\StaticObject {
 
 		$up = array_keys($contents);
 		$path = '';
+
 		foreach (explode('\\', $object['identifier']) as $i => $key) {
 			if ($i == 0 && $key == $library) {
 				continue;
@@ -144,17 +146,10 @@ class Extractor extends \lithium\core\StaticObject {
 		}
 		$up = array_flip($up);
 
-		foreach (array_keys($up) as $parent_type) {
-			if ($parent_type == "{$library}/{$path}") {
-				$up[$parent_type] = $result;
-			}
-			else {
-				$up[$parent_type] = 'page';
-			}
+		foreach (array_keys($up) as $parentType) {
+			$up[$parentType] = ($parentType == "{$library}/{$path}") ? $result : 'page';
 		}
-		$result = $up;
-
-		return $result;
+		return $up;
 	}
 
 	protected static function _class(array $object, array $data, array $options = array()) {
@@ -200,18 +195,20 @@ class Extractor extends \lithium\core\StaticObject {
 			)),
 		);
 		$subPath = dirname($object['path']) . $ds . basename($object['path'], '.php');
+
 		if (is_dir($subPath)) {
 			$path = preg_replace('/^' . preg_quote($config['prefix'], '/') . '/', '', $identifier);
 			$path = '/' . str_replace('\\', '/', $path);
 			$data['children'] = static::_children($library, $path);
+			return $data;
 		}
-		else {
-			$parts = preg_split('/\\\\/', $identifier, null, PREG_SPLIT_NO_EMPTY);
-			array_shift($parts);
-			array_pop($parts);
-			$path = '/'. join('/', $parts);
-			$data['children'] = static::_children($library, $path);
-		}
+
+		$parts = preg_split('/\\\\/', $identifier, null, PREG_SPLIT_NO_EMPTY);
+		array_shift($parts);
+		array_pop($parts);
+		$path = '/'. join('/', $parts);
+		$data['children'] = static::_children($library, $path);
+
 		return $data;
 	}
 
@@ -231,28 +228,24 @@ class Extractor extends \lithium\core\StaticObject {
 				$result += array($child => $type);
 			}
 		}
-
 		$parts = preg_split('!/!', $path, null, PREG_SPLIT_NO_EMPTY);
+		$parentPath = '';
+		$libPath = $library . str_replace('/', '\\', $path);
+
 		if (count($parts) >= 2) {
 			array_pop($parts);
-			$parent_path = '/'. join('/', $parts);
-		}
-		else {
-			$parent_path = '';
+			$parentPath = '/'. join('/', $parts);
 		}
 
-		$up = array_flip(Libraries::find($library, array('path' => $parent_path, 'namespaces' => 1)));
-		foreach (array_keys($up) as $parent_type) {
-			if ($parent_type == $library . str_replace('/', '\\', $path)) {
-				$up[$parent_type] = $result;
-			}
-			else {
-				$up[$parent_type] = 'namespace';
-			}
-		}
-		$result = $up;
+		$up = array_flip(Libraries::find($library, array(
+			'path' => $parentPath,
+			'namespaces' => true
+		)));
 
-		return $result;
+		foreach (array_keys($up) as $parentType) {
+			$up[$parentType] = ($parentType == $libPath) ? $result : 'namespace';
+		}
+		return $up;
 	}
 
 	protected static function _codeToDoc($code) {

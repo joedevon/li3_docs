@@ -48,7 +48,7 @@ use lithium\core\Environment;
 				); ?>
 			</h1>
 			<?=$this->html->link(
-				$t('<span class="home">/docs</span>', array('scope' => 'li3_docs')),
+				$t('<span class="home"></span>', array('scope' => 'li3_docs')),
 				array('controller' => 'li3_docs.ApiBrowser', 'action' => 'index'),
 				array('escape' => false, 'title' => 'Return to root level of documentation')
 			); ?>
